@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Venom (VENOM): Fast, Scalable—and Risky?</title>
+<meta name="description" content="An interactive 3D presentation about the Venom (VENOM) cryptocurrency.">
+<meta name="theme-color" content="#020403">
+<style>
+@font-face{font-family:"Orbitron";font-weight:700;font-display:swap;src:url(vendor/fonts/orbitron-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Orbitron";font-weight:900;font-display:swap;src:url(vendor/fonts/orbitron-latin-900-normal.woff2) format("woff2")}
+@font-face{font-family:"Inter";font-weight:400;font-display:swap;src:url(vendor/fonts/inter-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Inter";font-weight:600;font-display:swap;src:url(vendor/fonts/inter-latin-600-normal.woff2) format("woff2")}
+
+:root{
+  --green:#3dff8b; --green-dim:#17b866; --red:#ff4455; --silver:#c9d2d8;
+  --ink:#ffffff; --bg:#020403; --panel-edge:rgba(61,255,139,.5);
+  --display:"Orbitron","Eurostile","Bahnschrift","Segoe UI",system-ui,sans-serif;
+  --body:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+body{touch-action:none;user-select:none;-webkit-user-select:none}
+[contenteditable]{user-select:text;-webkit-user-select:text}
+
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+#css{position:fixed;inset:0;overflow:hidden;pointer-events:none}
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 30% 48%,transparent 40%,rgba(0,0,0,.55) 100%);z-index:2}
+
+/* ---------- glass holographic panels ---------- */
+.panel{
+  --s:calc(var(--u,16px) * var(--fit,1));
+  position:relative;width:var(--w,560px);
+  padding:calc(var(--s)*1.5) calc(var(--s)*1.8) calc(var(--s)*1.6);
+  border-radius:calc(var(--s)*.9);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0) 30%),
+    linear-gradient(145deg,rgba(24,58,44,.62),rgba(4,9,8,.82) 70%);
+  border:1px solid var(--panel-edge);
+  box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 0 calc(var(--s)*2.4) rgba(61,255,139,.2),0 calc(var(--s)*2) calc(var(--s)*5) rgba(0,0,0,.6);
+  -webkit-backdrop-filter:blur(10px) saturate(1.3);backdrop-filter:blur(10px) saturate(1.3);
+  visibility:hidden;opacity:0; /* no overflow:hidden here: it breaks hit-testing inside Chromium's 3D context */
+}
+.panel::before{ /* scanline sheen */
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 4px);
+}
+.panel::after{ /* corner brackets */
+  content:"";position:absolute;inset:calc(var(--s)*.5);pointer-events:none;border-radius:calc(var(--s)*.5);
+  background:
+    linear-gradient(var(--green),var(--green)) top left/calc(var(--s)*1.6) 2px no-repeat,
+    linear-gradient(var(--green),var(--green)) top left/2px calc(var(--s)*1.6) no-repeat,
+    linear-gradient(var(--green),var(--green)) bottom right/calc(var(--s)*1.6) 2px no-repeat,
+    linear-gradient(var(--green),var(--green)) bottom right/2px calc(var(--s)*1.6) no-repeat;
+  opacity:.9;
+}
+.eyebrow{font:700 calc(var(--s)*.74)/1.2 var(--display);letter-spacing:.28em;text-transform:uppercase;color:var(--silver);margin:0 0 calc(var(--s)*.7);display:flex;align-items:center;gap:.9em}
+.eyebrow i{font-style:normal;color:var(--green)}
+.eyebrow::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,rgba(61,255,139,.7),transparent)}
+h1,h2{margin:0 0 calc(var(--s)*1);font-family:var(--display);font-weight:900;color:var(--green);line-height:1.12;text-shadow:0 0 calc(var(--s)*1.1) rgba(61,255,139,.5);letter-spacing:.01em}
+h1{font-size:calc(var(--s)*2.75)}
+h2{font-size:calc(var(--s)*2.45)}
+ul.points{list-style:none;margin:0;padding:0;display:grid;gap:calc(var(--s)*.62)}
+ul.points li{position:relative;padding-left:calc(var(--s)*1.55);font-size:calc(var(--s)*1.2);line-height:1.38;font-weight:400;color:#fff}
+ul.points li::before{content:"";position:absolute;left:calc(var(--s)*.12);top:.5em;width:calc(var(--s)*.5);height:calc(var(--s)*.5);background:var(--green);transform:rotate(45deg);box-shadow:0 0 calc(var(--s)*.7) var(--green)}
+ul.points b{font-weight:600}
+ul.points .k{font-family:var(--display);font-weight:700;color:var(--green);letter-spacing:.04em;font-size:.92em}
+.tag{display:inline-block;margin-left:.5em;padding:.05em .55em;border:1px solid rgba(201,210,216,.6);border-radius:99px;font-size:.62em;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);vertical-align:.12em;white-space:nowrap}
+.red{color:var(--red)!important}
+.lede{font-size:calc(var(--s)*1.2);margin:0 0 calc(var(--s)*1);color:#fff;line-height:1.4}
+.meta{display:grid;gap:calc(var(--s)*.3);margin:calc(var(--s)*1) 0 calc(var(--s)*1.1);font-size:calc(var(--s)*1.05);color:#fff}
+.meta .lbl{color:var(--silver)}
+[contenteditable]{outline:none;border-bottom:1px dashed rgba(61,255,139,.7);padding:0 .15em;cursor:text;min-width:3ch;display:inline-block}
+[contenteditable]:focus{background:rgba(61,255,139,.14);border-bottom-style:solid}
+.quiz{margin-top:calc(var(--s)*.9);padding:calc(var(--s)*1) calc(var(--s)*1.2);border:1px solid rgba(61,255,139,.4);border-radius:calc(var(--s)*.6);background:rgba(61,255,139,.07)}
+.quiz .q{margin:0 0 calc(var(--s)*.7);font-size:calc(var(--s)*1.1);line-height:1.35;font-weight:600}
+.quiz .q em{font-style:normal;font-family:var(--display);font-weight:700;color:var(--green);letter-spacing:.2em;font-size:.72em;display:block;margin-bottom:.35em}
+.opts{display:flex;flex-wrap:wrap;gap:calc(var(--s)*.5)}
+.opts span{padding:calc(var(--s)*.35) calc(var(--s)*.85);border-radius:99px;border:1px solid rgba(201,210,216,.55);font-size:calc(var(--s)*.98);background:rgba(255,255,255,.05)}
+.opts b{color:var(--green);font-family:var(--display);margin-right:.45em}
+.quote{margin:calc(var(--s)*1.2) 0 0;padding-top:calc(var(--s)*.9);border-top:1px solid rgba(61,255,139,.35);font-size:calc(var(--s)*1.28);line-height:1.35;font-weight:600;color:#fff}
+.quote q{quotes:"“" "”"}
+.quote q::before,.quote q::after{color:var(--green)}
+.fineprint{margin:calc(var(--s)*.7) 0 0;font-size:calc(var(--s)*.78);color:#b8c4be}
+.btn-restart{margin-top:calc(var(--s)*1.1);pointer-events:auto;cursor:pointer;font:700 calc(var(--s)*.95)/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:#02140a;background:linear-gradient(180deg,#7dffb1,var(--green));border:0;border-radius:99px;padding:calc(var(--s)*.9) calc(var(--s)*1.8);box-shadow:0 0 calc(var(--s)*1.6) rgba(61,255,139,.55)}
+.btn-restart:hover{filter:brightness(1.12)}
+
+/* ---------- HUD ---------- */
+.hud,.topbar{position:fixed;z-index:10}
+.hud{left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:clamp(12px,2.6vw,26px);opacity:0;transition:opacity 1.2s ease 1.6s}
+body.ready .hud,body.ready .topbar{opacity:1}
+.arrow{
+  appearance:none;width:clamp(54px,5.4vw,68px);height:clamp(54px,5.4vw,68px);border-radius:50%;cursor:pointer;
+  color:var(--green);background:radial-gradient(circle at 50% 35%,rgba(61,255,139,.18),rgba(3,10,7,.8) 70%);
+  border:1.5px solid var(--green);display:grid;place-items:center;
+  box-shadow:0 0 18px rgba(61,255,139,.5),inset 0 0 16px rgba(61,255,139,.22);
+  transition:transform .2s ease,box-shadow .2s ease,opacity .3s ease,background .2s ease;
+}
+.arrow svg{width:46%;height:46%;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 6px currentColor)}
+.arrow:hover:not(:disabled){transform:scale(1.08);box-shadow:0 0 30px rgba(61,255,139,.85),inset 0 0 18px rgba(61,255,139,.35)}
+.arrow:active:not(:disabled){transform:scale(.96)}
+.arrow:disabled{opacity:.28;cursor:default;box-shadow:none}
+#next:not(:disabled){animation:glow 2.6s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 16px rgba(61,255,139,.45),inset 0 0 14px rgba(61,255,139,.2)}50%{box-shadow:0 0 34px rgba(61,255,139,.95),inset 0 0 20px rgba(61,255,139,.4)}}
+.progress{display:grid;justify-items:center;gap:8px;min-width:112px}
+.count{font:900 clamp(20px,2.1vw,28px)/1 var(--display);letter-spacing:.12em;color:#fff;text-shadow:0 0 14px rgba(61,255,139,.7)}
+.count span{color:var(--green)}
+.count small{font-size:.62em;color:var(--silver);margin-left:.2em}
+.dots{display:flex;gap:4px}
+.dots button{appearance:none;border:0;background:none;padding:8px 2px;cursor:pointer}
+.dots button i{display:block;width:clamp(14px,1.8vw,22px);height:4px;border-radius:2px;background:rgba(201,210,216,.35);transition:background .3s,box-shadow .3s}
+.dots button[aria-current="true"] i{background:var(--green);box-shadow:0 0 10px var(--green)}
+.dots button:hover i{background:var(--silver)}
+.topbar{top:max(12px,env(safe-area-inset-top));left:16px;right:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;opacity:0;transition:opacity 1.2s ease 1.6s;pointer-events:none}
+.topbar>*{pointer-events:auto}
+.brand{font:900 14px/1 var(--display);letter-spacing:.34em;color:var(--silver);display:flex;align-items:center;gap:10px}
+.brand b{color:var(--green);text-shadow:0 0 12px rgba(61,255,139,.7)}
+.brand::before{content:"";width:10px;height:10px;background:var(--green);transform:rotate(45deg);box-shadow:0 0 12px var(--green)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.tool{appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border-radius:99px;
+  font:700 12px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:#fff;background:rgba(5,12,9,.72);border:1px solid rgba(201,210,216,.45);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:border-color .2s,box-shadow .2s,color .2s}
+.tool:hover{border-color:var(--green);box-shadow:0 0 14px rgba(61,255,139,.45)}
+.tool svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tool[aria-pressed="true"]{color:#02140a;background:var(--green);border-color:var(--green)}
+.tool[aria-pressed="true"]:hover{box-shadow:0 0 18px rgba(61,255,139,.8)}
+.hint{position:fixed;z-index:9;right:16px;bottom:18px;font-size:12px;color:#aeb9b3;letter-spacing:.04em;opacity:0;transition:opacity 1.2s ease 2s}
+body.ready .hint{opacity:.9}
+body.moved .hint{opacity:0;transition-delay:0s}
+.hint kbd{font:600 11px var(--body);border:1px solid rgba(201,210,216,.5);border-radius:5px;padding:1px 6px;color:#fff}
+:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#fallback{position:fixed;inset:0;z-index:50;display:none;place-items:center;text-align:center;padding:24px;background:#020403;color:#fff}
+#fallback h1{font-size:28px}
+body.no-webgl #fallback{display:grid}
+
+/* compact phones in landscape / small screens */
+@media (max-height:520px){.brand{display:none}.tool span{display:none}.tool{padding:0 11px}.hint{display:none}}
+@media (max-width:760px){.hint{display:none}.tool span{display:none}.tool{padding:0 11px}}
+@media (max-width:520px){.brand{font-size:12px;letter-spacing:.22em}.brand-sub{display:none}.tools{flex-wrap:nowrap;gap:6px}.tool{min-height:38px;padding:0 10px}}
+
+/* Reduce Motion: no decorative animation; transitions become instant */
+body.reduced *,body.reduced *::before,body.reduced *::after{animation:none!important;transition-duration:.01ms!important;transition-delay:0s!important}
+body.reduced .hud,body.reduced .topbar,body.reduced .hint{opacity:1}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-hidden="true"></canvas>
+<div id="css"></div>
+<div id="vignette"></div>
+
+<header class="topbar">
+  <div class="brand"><b>VENOM</b><span class="brand-sub"> · Presentation</span></div>
+  <div class="tools" role="toolbar" aria-label="Presentation options">
+    <button class="tool" id="home" type="button" title="Home — back to the cover (Home key)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg><span>Home</span></button>
+    <button class="tool" id="motion" type="button" aria-pressed="false" title="Reduce motion">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg><span>Reduce motion</span></button>
+    <button class="tool" id="sound" type="button" aria-pressed="true" title="Navigation sounds">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg><span>Sound</span></button>
+    <button class="tool" id="full" type="button" title="Toggle full screen (F)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span>Full screen</span></button>
+  </div>
+</header>
+
+<nav class="hud" aria-label="Slide navigation">
+  <button class="arrow" id="back" type="button" aria-label="Back" title="Back (←)">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+  <div class="progress">
+    <div class="count" id="count" aria-hidden="true"><span>01</span><small>/ 06</small></div>
+    <div class="dots" id="dots" role="group" aria-label="Jump to section"></div>
+  </div>
+  <button class="arrow" id="next" type="button" aria-label="Next" title="Next (→)">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+</nav>
+<div class="hint"><kbd>←</kbd> <kbd>→</kbd> navigate &nbsp;·&nbsp; <kbd>1</kbd>–<kbd>6</kbd> jump &nbsp;·&nbsp; <kbd>Home</kbd> cover</div>
+<div class="sr" id="live" aria-live="polite"></div>
+
+<div id="fallback" role="alert"><div><h1>WebGL is required</h1><p>This 3D presentation needs a browser with WebGL enabled. Try a current version of Chrome, Edge, Firefox or Safari.</p></div></div>
+
+<!-- Presentation sections: each becomes a glass panel placed in the 3D circle around the coin -->
+<div id="panels" hidden>
+
+  <section class="panel" data-title="Cover — Venom: Fast, Scalable and Risky?">
+    <p class="eyebrow"><i>01</i> Venom (VENOM) cryptocurrency</p>
+    <h1>Venom: Fast, Scalable—and Risky?</h1>
+    <div class="meta">
+      <div><span class="lbl">Presented by:</span> <span contenteditable="plaintext-only" spellcheck="false" data-key="name" aria-label="Presenter name (click to edit)">Isaac Mccorry</span></div>
+      <div><span contenteditable="plaintext-only" spellcheck="false" data-key="class" aria-label="Class (click to edit)">Cryptocurrency</span> · <span contenteditable="plaintext-only" spellcheck="false" data-key="date" aria-label="Date (click to edit)">November 5, 2026</span></div>
+    </div>
+    <div class="quiz">
+      <p class="q"><em>QUIZ</em>Which Venom feature automatically divides network traffic into smaller groups?</p>
+      <div class="opts"><span><b>A</b>Bitcoin mining</span><span><b>B</b>Dynamic sharding</span><span><b>C</b>Stablecoins</span></div>
+    </div>
+  </section>
+
+  <section class="panel" data-title="Context — Who, Where, and When?">
+    <p class="eyebrow"><i>02</i> Context</p>
+    <h2>Who, Where, and When?</h2>
+    <ul class="points">
+      <li>Built by the <b>Venom Foundation</b>, incorporated in <b>2022</b></li>
+      <li>First foundation licensed by <b>ADGM (Abu Dhabi)</b> to run a blockchain and issue utility tokens</li>
+      <li>Born in a bear market, as the <b>UAE</b> became a regulated crypto hub</li>
+      <li>Founders: <b>Abutalibov, Kheriba, Knez, Khan, Garcia Isaaev</b></li>
+      <li>Mainnet launched <b>March 2024</b></li>
+    </ul>
+  </section>
+
+  <section class="panel" data-title="Complication — What Was Missing?">
+    <p class="eyebrow"><i>03</i> Complication</p>
+    <h2>What Was Missing?</h2>
+    <ul class="points">
+      <li>Older blockchains could be <b>slow and expensive</b></li>
+      <li>Institutions needed <b>regulated, scalable</b> infrastructure</li>
+      <li><b>Stablecoins, CBDCs</b> and tokenized real-world assets needed a fast network</li>
+      <li><b>Traditional finance and Web3</b> were still disconnected</li>
+    </ul>
+  </section>
+
+  <section class="panel" data-title="Turning Point — What Venom Built">
+    <p class="eyebrow"><i>04</i> Turning point</p>
+    <h2>What Venom Built</h2>
+    <ul class="points">
+      <li><b>Layer 0 + Layer 1</b> architecture</li>
+      <li><b>Dynamic sharding</b> + Threaded Virtual Machine</li>
+      <li><b>Proof-of-stake</b> + specialized workchains</li>
+      <li>Up to <b>150,000 TPS</b>, sub-second finality</li>
+      <li><b>$VENOM:</b> fees, staking, DeFi and GameFi</li>
+    </ul>
+  </section>
+
+  <section class="panel" data-title="Resolution — Did It Succeed?">
+    <p class="eyebrow"><i>05</i> Resolution</p>
+    <h2>Did It Succeed?</h2>
+    <ul class="points">
+      <li><span class="k">Technology:</span> <b>Yes</b> — dynamic sharding is live</li>
+      <li><span class="k">Adoption:</span> <b class="red">struggling</b> against established Layer-1s</li>
+      <li>Delisted from <b>OKX</b> and <b>CoinW</b></li>
+      <li>Trades at <b>$0.009–$0.015</b>, about <b class="red">97% below its peak</b></li>
+    </ul>
+  </section>
+
+  <section class="panel" data-title="Closing — Buy, Sell, or Hold?">
+    <p class="eyebrow"><i>06</i> Closing</p>
+    <h2>Buy, Sell, or Hold?</h2>
+    <ul class="points">
+      <li><span class="k">Quiz answer:</span> <b>Dynamic sharding</b></li>
+      <li><span class="k">Decision:</span> <b class="red">Sell</b> — at best a high-risk hold</li>
+      <li><span class="k">Why:</span> only ~25% of supply circulating, token-unlock dilution, thin liquidity, money rotating to Bitcoin</li>
+      <li><span class="k">Plus:</span> advanced, regulated technology; only short-term traders see upside</li>
+    </ul>
+    <p class="quote"><q>Strong technology does not guarantee market success.</q></p>
+    <button class="btn-restart" id="restart" type="button">Restart Presentation</button>
+    <p class="fineprint">Educational presentation, not financial advice.</p>
+  </section>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/three.module.js",
+  "three/addons/": "./vendor/addons/"
+} }
+</script>
+<script type="module" src="main.js"></script>
+</body>
+</html>
